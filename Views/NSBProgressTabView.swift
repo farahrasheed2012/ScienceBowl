@@ -31,7 +31,7 @@ struct NSBProgressTabView: View {
 
     private var overallCard: some View {
         VStack(spacing: 20) {
-            Text("\(progressStore.reviewedTopicIds.count) topics reviewed")
+            Text("\(progressStore.reviewedTopicIds.count) of \(contentRepository.topics.count) topics reviewed")
                 .font(.system(size: ThemePalette.titleSize, weight: .bold))
                 .foregroundColor(theme.primaryText)
             Text("\(progressStore.sessionHistory.count) practice sessions")
@@ -66,14 +66,14 @@ struct NSBProgressTabView: View {
             Text("Session history")
                 .font(.headline)
                 .foregroundColor(theme.primaryText)
-            ForEach(progressStore.sessionHistory.prefix(15)) { session in
+                ForEach(progressStore.sessionHistory.prefix(15)) { session in
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(session.subject)
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundColor(theme.primaryText)
-                        Text(session.date, style: .date)
+                        Text("\(session.modeDisplay) · \(session.date, style: .date)")
                             .font(.caption)
                             .foregroundColor(theme.secondaryText)
                     }
@@ -96,6 +96,19 @@ struct NSBProgressTabView: View {
                     Text("Topics to review")
                         .font(.headline)
                         .foregroundColor(theme.primaryText)
+                    NavigationLink(destination: SessionSettingsView(mode: .multipleChoice, preferredTopicIds: progressStore.weakTopicIds).environmentObject(contentRepository).environmentObject(progressStore)) {
+                        HStack {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                            Text("Practice weak topics")
+                                .font(.body)
+                                .foregroundColor(theme.accent)
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(theme.cardBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: AppLayout.cornerRadius))
+                    }
+                    .buttonStyle(.plain)
                     ForEach(progressStore.weakTopicIds.prefix(10), id: \.self) { topicId in
                         if let topic = contentRepository.topic(byId: topicId) {
                             NavigationLink(destination: TopicDetailView(topic: topic).environmentObject(progressStore).environmentObject(contentRepository)) {

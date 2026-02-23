@@ -5,9 +5,11 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct MultipleChoicePracticeView: View {
     let questions: [NSBQuestion]
+    var modeLabel: String = "Multiple Choice"
     @EnvironmentObject var contentRepository: ContentRepository
     @EnvironmentObject var progressStore: NSBProgressStore
     @State private var currentIndex = 0
@@ -65,11 +67,11 @@ struct MultipleChoicePracticeView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(theme.cardBackground)
                     .clipShape(RoundedRectangle(cornerRadius: AppLayout.cornerRadius))
-                if let choices = q.answerChoices {
+                if let choices: [String: String] = q.answerChoices {
                     VStack(spacing: 12) {
                         ForEach(["W", "X", "Y", "Z"], id: \.self) { key in
                             if let text = choices[key] {
-                                optionButton(key: key, text: text, correct: q.correctAnswer)
+                                optionButton(key: key, text: text, correct: q.correctAnswer, correctText: choices[q.correctAnswer] ?? q.correctAnswer)
                             }
                         }
                     }
@@ -90,7 +92,7 @@ struct MultipleChoicePracticeView: View {
         }
     }
 
-    private func optionButton(key: String, text: String, correct: String) -> some View {
+    private func optionButton(key: String, text: String, correct: String, correctText: String) -> some View {
         let isSelected = selectedKey == key
         let showCorrect = showResult && key == correct
         let showWrong = showResult && isSelected && key != correct
@@ -126,6 +128,8 @@ struct MultipleChoicePracticeView: View {
         }
         .buttonStyle(.plain)
         .disabled(selectedKey != nil)
+        .accessibilityLabel("Option \(key): \(text)")
+        .accessibilityHint(showResult ? (key == correct ? "Correct" : "Incorrect. Correct answer: \(correctText)") : "Double tap to select")
     }
 
     private func explanationCard(topic: NSBTopic, onContinue: @escaping () -> Void) -> some View {
@@ -150,6 +154,8 @@ struct MultipleChoicePracticeView: View {
                         .clipShape(RoundedRectangle(cornerRadius: ThemePalette.cornerRadius))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(currentIndex + 1 < questions.count ? "Next question" : "See results")
+                .accessibilityHint("Double tap to continue")
             }
             .padding(24)
         }
@@ -163,8 +169,10 @@ struct MultipleChoicePracticeView: View {
         if currentIndex + 1 < questions.count {
             currentIndex += 1
         } else {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             progressStore.recordSession(
                 subject: currentQuestion?.subject ?? "Mixed",
+                mode: modeLabel,
                 score: score,
                 total: questions.count,
                 missedTopicIds: missedTopicIds
@@ -182,17 +190,43 @@ struct MultipleChoicePracticeView: View {
                 .font(.system(size: ThemePalette.titleSize))
                 .foregroundColor(theme.secondaryText)
             if !missedTopicIds.isEmpty {
-                NavigationLink(destination: weakTopicsReviewView) {
-                    Text("Review weak topics")
-                        .font(.system(size: ThemePalette.bodySize, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
-                        .background(theme.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: ThemePalette.cornerRadius))
+                VStack(spacing: 12) {
+                    Text("Topics to review")
+                        .font(.headline)
+                        .foregroundColor(theme.secondaryText)
+                    NavigationLink(destination: weakTopicsReviewView) {
+                        Text("Review weak topics")
+                            .font(.system(size: ThemePalette.bodySize, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .background(theme.accent)
+                            .clipShape(RoundedRectangle(cornerRadius: ThemePalette.cornerRadius))
+                    }
+                    .buttonStyle(.plain)
+                    NavigationLink(destination: SessionSettingsView(mode: .multipleChoice, preferredTopicIds: Array(Set(missedTopicIds))).environmentObject(contentRepository).environmentObject(progressStore)) {
+                        Text("Practice weak topics")
+                            .font(.system(size: ThemePalette.bodySize, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .background(theme.cardBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: ThemePalette.cornerRadius))
+                            .overlay(RoundedRectangle(cornerRadius: ThemePalette.cornerRadius).stroke(theme.accent, lineWidth: 2))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
+            NavigationLink(destination: SessionSettingsView(mode: .multipleChoice).environmentObject(contentRepository).environmentObject(progressStore)) {
+                Text("Practice again")
+                    .font(.system(size: ThemePalette.bodySize, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(theme.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: ThemePalette.cornerRadius))
+            }
+            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(theme.surface.ignoresSafeArea())

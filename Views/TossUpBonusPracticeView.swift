@@ -4,9 +4,11 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct TossUpBonusPracticeView: View {
     let questions: [NSBQuestion]
+    var modeLabel: String = "Toss-Up & Bonus"
     @EnvironmentObject var contentRepository: ContentRepository
     @EnvironmentObject var progressStore: NSBProgressStore
     @State private var currentIndex = 0
@@ -25,7 +27,7 @@ struct TossUpBonusPracticeView: View {
     var body: some View {
         Group {
             if questions.isEmpty {
-                Text("No questions.").foregroundColor(theme.primaryText).frame(maxWidth: .infinity, maxHeight: .infinity).background(theme.surface.ignoresSafeArea())
+                emptyView
             } else if showExplanation, let q = currentQuestion, let topic = contentRepository.topic(byId: q.topicId) {
                 explanationThenNext(topic: topic)
             } else if let q = currentQuestion {
@@ -104,7 +106,8 @@ struct TossUpBonusPracticeView: View {
                     if currentIndex + 1 < questions.count {
                         currentIndex += 1
                     } else {
-                        progressStore.recordSession(subject: currentQuestion?.subject ?? "Mixed", score: tossUpScore + bonusScore, total: questions.count, missedTopicIds: missedTopicIds)
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        progressStore.recordSession(subject: currentQuestion?.subject ?? "Mixed", mode: modeLabel, score: tossUpScore + bonusScore, total: questions.count, missedTopicIds: missedTopicIds)
                         currentIndex = questions.count
                     }
                 } label: {
@@ -123,14 +126,49 @@ struct TossUpBonusPracticeView: View {
         .background(theme.surface.ignoresSafeArea())
     }
 
+    private var emptyView: some View {
+        VStack(spacing: 16) {
+            Text("No questions match your settings.")
+                .font(.title2)
+                .foregroundColor(theme.primaryText)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(theme.surface.ignoresSafeArea())
+    }
+
     private var endView: some View {
         VStack(spacing: 24) {
             Text("Session complete!")
                 .font(.system(size: ThemePalette.largeTitleSize, weight: .bold))
                 .foregroundColor(theme.primaryText)
-            Text("Toss-ups: \(tossUpScore) / \(questions.count)")
+            Text("\(tossUpScore + bonusScore) / \(questions.count) correct")
                 .font(.system(size: ThemePalette.titleSize))
                 .foregroundColor(theme.secondaryText)
+            if !missedTopicIds.isEmpty {
+                Text("Topics to review")
+                    .font(.headline)
+                    .foregroundColor(theme.secondaryText)
+                NavigationLink(destination: SessionSettingsView(mode: .tossUpBonus, preferredTopicIds: Array(Set(missedTopicIds))).environmentObject(contentRepository).environmentObject(progressStore)) {
+                    Text("Practice weak topics")
+                        .font(.system(size: ThemePalette.bodySize, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background(theme.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: ThemePalette.cornerRadius))
+                }
+                .buttonStyle(.plain)
+            }
+            NavigationLink(destination: SessionSettingsView(mode: .tossUpBonus).environmentObject(contentRepository).environmentObject(progressStore)) {
+                Text("Practice again")
+                    .font(.system(size: ThemePalette.bodySize, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(theme.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: ThemePalette.cornerRadius))
+            }
+            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(theme.surface.ignoresSafeArea())

@@ -29,11 +29,12 @@ final class NSBProgressStore: ObservableObject {
         save()
     }
 
-    func recordSession(subject: String, score: Int, total: Int, missedTopicIds: [String]) {
+    func recordSession(subject: String, mode: String, score: Int, total: Int, missedTopicIds: [String]) {
         let record = NSBSessionRecord(
             id: UUID().uuidString,
             date: Date(),
             subject: subject,
+            mode: mode,
             score: score,
             total: total,
             missedTopicIds: missedTopicIds
@@ -49,15 +50,17 @@ final class NSBProgressStore: ObservableObject {
     private func updateStreakIfNeeded() {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
+        let previousLast = lastStudyDate
         lastStudyDate = Date()
-        guard let last = lastStudyDate else {
-            currentStreak = 1
+        guard let last = previousLast else {
+            currentStreak = max(1, currentStreak)
+            save()
             return
         }
         let lastDay = calendar.startOfDay(for: last)
         let daysDiff = calendar.dateComponents([.day], from: lastDay, to: today).day ?? 0
         if daysDiff == 0 {
-            return
+            // Same day: keep streak
         } else if daysDiff == 1 {
             currentStreak += 1
         } else {
@@ -110,7 +113,10 @@ struct NSBSessionRecord: Codable, Identifiable {
     let id: String
     let date: Date
     let subject: String
+    let mode: String?
     let score: Int
     let total: Int
     let missedTopicIds: [String]
+
+    var modeDisplay: String { mode ?? "Multiple Choice" }
 }

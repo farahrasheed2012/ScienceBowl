@@ -49,13 +49,28 @@ struct LearnTabView: View {
     }
 
     private func subjectRow(_ subject: NSBSubject) -> some View {
-        HStack(spacing: AppLayout.padding) {
+        let topics = contentRepository.topics(for: subject)
+        let reviewedCount = topics.filter { progressStore.reviewedTopicIds.contains($0.id) }.count
+        let total = topics.count
+        return HStack(spacing: AppLayout.padding) {
             Text(subject.emoji)
                 .font(.title)
             Text(subject.rawValue)
                 .font(.body)
                 .foregroundColor(AppTheme.palette.primaryText)
             Spacer(minLength: 0)
+            if total > 0 {
+                HStack(spacing: 4) {
+                    if reviewedCount == total {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(AppTheme.palette.success)
+                            .font(.body)
+                    }
+                    Text("\(reviewedCount)/\(total)")
+                        .font(.caption)
+                        .foregroundColor(AppTheme.palette.secondaryText)
+                }
+            }
             Image(systemName: "chevron.right")
                 .font(.caption)
                 .foregroundColor(AppTheme.palette.secondaryText)

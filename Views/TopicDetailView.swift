@@ -79,6 +79,8 @@ struct TopicDetailView: View {
                     .clipShape(RoundedRectangle(cornerRadius: ThemePalette.cornerRadius))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(progressStore.reviewedTopicIds.contains(topic.id) ? "Reviewed" : "Mark as reviewed")
+                .accessibilityHint("Double tap to mark this topic as reviewed")
                 .padding(.top, 8)
             }
             .padding(AppLayout.padding)

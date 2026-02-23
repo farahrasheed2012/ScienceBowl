@@ -7,6 +7,7 @@ import SwiftUI
 
 struct SessionSettingsView: View {
     let mode: PracticeMode
+    var preferredTopicIds: [String]? = nil
     @EnvironmentObject var contentRepository: ContentRepository
     @EnvironmentObject var progressStore: NSBProgressStore
     @State private var selectedSubject: String = "All Subjects"
@@ -19,17 +20,25 @@ struct SessionSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Subject") {
-                Picker("Subject", selection: $selectedSubject) {
-                    ForEach(subjects, id: \.self) { Text($0).tag($0) }
+            if preferredTopicIds == nil {
+                Section("Subject") {
+                    Picker("Subject", selection: $selectedSubject) {
+                        ForEach(subjects, id: \.self) { Text($0).tag($0) }
+                    }
+                    .pickerStyle(.menu)
                 }
-                .pickerStyle(.menu)
-            }
-            Section("Difficulty") {
-                Picker("Difficulty", selection: $selectedDifficulty) {
-                    ForEach(difficulties, id: \.self) { Text($0).tag($0) }
+                Section("Difficulty") {
+                    Picker("Difficulty", selection: $selectedDifficulty) {
+                        ForEach(difficulties, id: \.self) { Text($0).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
                 }
-                .pickerStyle(.segmented)
+            } else {
+                Section {
+                    Text("Questions from your weak topics only.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
             }
             Section("Number of questions") {
                 Picker("Count", selection: $questionCount) {
@@ -38,16 +47,14 @@ struct SessionSettingsView: View {
                 .pickerStyle(.segmented)
             }
             Section {
-                let diffKey = selectedDifficulty == "Grade 6" ? "grade6" : (selectedDifficulty == "Grade 7" ? "grade7" : "")
-                let subj = selectedSubject == "All Subjects" ? nil : selectedSubject
-                NavigationLink(destination: destinationView(subject: subj, difficulty: diffKey, count: questionCount)) {
+                NavigationLink(destination: destinationView()) {
                     Text("Start")
                         .frame(maxWidth: .infinity)
                         .fontWeight(.semibold)
                 }
             }
         }
-        .navigationTitle(modeTitle)
+        .navigationTitle(preferredTopicIds != nil ? "Practice weak topics" : modeTitle)
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -59,16 +66,32 @@ struct SessionSettingsView: View {
         }
     }
 
-    @ViewBuilder
-    private func destinationView(subject: String?, difficulty: String?, count: Int) -> some View {
-        let questions = contentRepository.questions(subject: subject, difficulty: (difficulty ?? "").isEmpty ? nil : difficulty, limit: count)
-        switch mode {
-        case .multipleChoice:
-            MultipleChoicePracticeView(questions: questions).environmentObject(contentRepository).environmentObject(progressStore)
-        case .tossUpBonus:
-            TossUpBonusPracticeView(questions: questions).environmentObject(contentRepository).environmentObject(progressStore)
-        case .freeResponse:
-            FreeResponsePracticeView(questions: questions).environmentObject(contentRepository).environmentObject(progressStore)
+    private func fetchQuestions() -> [NSBQuestion] {
+        if let topicIds = preferredTopicIds, !topicIds.isEmpty {
+            return contentRepository.questions(forTopicIds: Array(Set(topicIds)), limit: questionCount)
+        }
+        let diffKey = selectedDifficulty == "Grade 6" ? "grade6" : (selectedDifficulty == "Grade 7" ? "grade7" : nil)
+        let subj = selectedSubject == "All Subjects" ? nil : selectedSubject
+        return contentRepository.questions(subject: subj, difficulty: diffKey, limit: questionCount)
+    }
+
+    private func destinationView() -> some View {
+        let questions = fetchQuestions()
+        return Group {
+            switch mode {
+            case .multipleChoice:
+                MultipleChoicePracticeView(questions: questions, modeLabel: modeTitle)
+                    .environmentObject(contentRepository)
+                    .environmentObject(progressStore)
+            case .tossUpBonus:
+                TossUpBonusPracticeView(questions: questions, modeLabel: modeTitle)
+                    .environmentObject(contentRepository)
+                    .environmentObject(progressStore)
+            case .freeResponse:
+                FreeResponsePracticeView(questions: questions, modeLabel: modeTitle)
+                    .environmentObject(contentRepository)
+                    .environmentObject(progressStore)
+            }
         }
     }
 }

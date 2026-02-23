@@ -48,4 +48,12 @@ final class ContentRepository: ObservableObject {
         if let d = difficulty, !d.isEmpty { list = list.filter { $0.difficulty == d } }
         return Array(list.shuffled().prefix(limit))
     }
+
+    /// Returns questions only from the given topic IDs (e.g. for "Practice weak topics").
+    func questions(forTopicIds topicIds: [String], limit: Int) -> [NSBQuestion] {
+        guard !topicIds.isEmpty else { return [] }
+        let set = Set(topicIds)
+        let list = questions.filter { set.contains($0.topicId) }
+        return Array(list.shuffled().prefix(limit))
+    }
 }

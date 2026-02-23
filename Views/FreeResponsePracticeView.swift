@@ -4,9 +4,11 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct FreeResponsePracticeView: View {
     let questions: [NSBQuestion]
+    var modeLabel: String = "Free Response"
     @EnvironmentObject var contentRepository: ContentRepository
     @EnvironmentObject var progressStore: NSBProgressStore
     @State private var currentIndex = 0
@@ -61,19 +63,24 @@ struct FreeResponsePracticeView: View {
                     Text("Correct answer: \(q.correctAnswer)")
                         .font(.headline)
                         .foregroundColor(theme.primaryText)
+                        .accessibilityLabel("Correct answer: \(q.correctAnswer)")
                     HStack(spacing: 16) {
                         Button("I got it right") {
                             score += 1
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
                             showExplanation = true
                         }
                         .font(.system(size: ThemePalette.bodySize, weight: .semibold))
                         .foregroundColor(theme.success)
+                        .accessibilityHint("Double tap if your answer was correct")
                         Button("I got it wrong") {
                             missedTopicIds.append(q.topicId)
+                            UINotificationFeedbackGenerator().notificationOccurred(.error)
                             showExplanation = true
                         }
                         .font(.system(size: ThemePalette.bodySize, weight: .semibold))
                         .foregroundColor(theme.wrong)
+                        .accessibilityHint("Double tap if your answer was wrong")
                     }
                 } else {
                     Button("Submit") {
@@ -110,7 +117,8 @@ struct FreeResponsePracticeView: View {
                     if currentIndex + 1 < questions.count {
                         currentIndex += 1
                     } else {
-                        progressStore.recordSession(subject: currentQuestion?.subject ?? "Mixed", score: score, total: questions.count, missedTopicIds: missedTopicIds)
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        progressStore.recordSession(subject: currentQuestion?.subject ?? "Mixed", mode: modeLabel, score: score, total: questions.count, missedTopicIds: missedTopicIds)
                         currentIndex = questions.count
                     }
                 } label: {
@@ -129,6 +137,16 @@ struct FreeResponsePracticeView: View {
         .background(theme.surface.ignoresSafeArea())
     }
 
+    private var emptyView: some View {
+        VStack(spacing: 16) {
+            Text("No questions match your settings.")
+                .font(.title2)
+                .foregroundColor(theme.primaryText)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(theme.surface.ignoresSafeArea())
+    }
+
     private var endView: some View {
         VStack(spacing: 24) {
             Text("Session complete!")
@@ -137,6 +155,31 @@ struct FreeResponsePracticeView: View {
             Text("\(score) / \(questions.count) (self-reported)")
                 .font(.system(size: ThemePalette.titleSize))
                 .foregroundColor(theme.secondaryText)
+            if !missedTopicIds.isEmpty {
+                Text("Topics to review")
+                    .font(.headline)
+                    .foregroundColor(theme.secondaryText)
+                NavigationLink(destination: SessionSettingsView(mode: .freeResponse, preferredTopicIds: Array(Set(missedTopicIds))).environmentObject(contentRepository).environmentObject(progressStore)) {
+                    Text("Practice weak topics")
+                        .font(.system(size: ThemePalette.bodySize, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background(theme.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: ThemePalette.cornerRadius))
+                }
+                .buttonStyle(.plain)
+            }
+            NavigationLink(destination: SessionSettingsView(mode: .freeResponse).environmentObject(contentRepository).environmentObject(progressStore)) {
+                Text("Practice again")
+                    .font(.system(size: ThemePalette.bodySize, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(theme.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: ThemePalette.cornerRadius))
+            }
+            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(theme.surface.ignoresSafeArea())
