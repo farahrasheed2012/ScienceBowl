@@ -80,11 +80,23 @@ struct MultipleChoicePracticeView: View {
                     Text(selectedKey == q.correctAnswer ? "Correct!" : "Correct answer: \(q.correctAnswer)")
                         .font(.headline)
                         .foregroundColor(selectedKey == q.correctAnswer ? theme.success : theme.wrong)
-                    Button("Show explanation") {
-                        showExplanation = true
+                    HStack(spacing: 12) {
+                        Button("Show explanation") {
+                            showExplanation = true
+                        }
+                        .font(.system(size: ThemePalette.bodySize, weight: .semibold))
+                        .foregroundColor(theme.accent)
+                        Button(currentIndex + 1 < questions.count ? "Next question" : "See results") {
+                            nextOrFinish()
+                        }
+                        .font(.system(size: ThemePalette.bodySize, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 20)
+                        .background(theme.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: ThemePalette.cornerRadius))
+                        .buttonStyle(.plain)
                     }
-                    .font(.system(size: ThemePalette.bodySize, weight: .semibold))
-                    .foregroundColor(theme.accent)
                 }
                 Spacer()
             }

@@ -66,13 +66,22 @@ struct SessionSettingsView: View {
         }
     }
 
+    private var questionTypeForMode: String? {
+        switch mode {
+        case .multipleChoice: return "multipleChoice"
+        case .tossUpBonus: return "tossUp"
+        case .freeResponse: return "freeResponse"
+        }
+    }
+
     private func fetchQuestions() -> [NSBQuestion] {
+        let typeFilter = questionTypeForMode
         if let topicIds = preferredTopicIds, !topicIds.isEmpty {
-            return contentRepository.questions(forTopicIds: Array(Set(topicIds)), limit: questionCount)
+            return contentRepository.questions(forTopicIds: Array(Set(topicIds)), limit: questionCount, type: typeFilter)
         }
         let diffKey = selectedDifficulty == "Grade 6" ? "grade6" : (selectedDifficulty == "Grade 7" ? "grade7" : nil)
         let subj = selectedSubject == "All Subjects" ? nil : selectedSubject
-        return contentRepository.questions(subject: subj, difficulty: diffKey, limit: questionCount)
+        return contentRepository.questions(subject: subj, difficulty: diffKey, limit: questionCount, type: typeFilter)
     }
 
     private func destinationView() -> some View {

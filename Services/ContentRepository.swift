@@ -42,18 +42,20 @@ final class ContentRepository: ObservableObject {
         topics.first { $0.id == id }
     }
 
-    func questions(subject: String?, difficulty: String?, limit: Int) -> [NSBQuestion] {
+    func questions(subject: String?, difficulty: String?, limit: Int, type: String? = nil) -> [NSBQuestion] {
         var list = questions
         if let s = subject, !s.isEmpty { list = list.filter { $0.subject == s } }
         if let d = difficulty, !d.isEmpty { list = list.filter { $0.difficulty == d } }
+        if let t = type, !t.isEmpty { list = list.filter { $0.type == t } }
         return Array(list.shuffled().prefix(limit))
     }
 
     /// Returns questions only from the given topic IDs (e.g. for "Practice weak topics").
-    func questions(forTopicIds topicIds: [String], limit: Int) -> [NSBQuestion] {
+    func questions(forTopicIds topicIds: [String], limit: Int, type: String? = nil) -> [NSBQuestion] {
         guard !topicIds.isEmpty else { return [] }
         let set = Set(topicIds)
-        let list = questions.filter { set.contains($0.topicId) }
+        var list = questions.filter { set.contains($0.topicId) }
+        if let t = type, !t.isEmpty { list = list.filter { $0.type == t } }
         return Array(list.shuffled().prefix(limit))
     }
 }
